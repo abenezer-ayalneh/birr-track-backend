@@ -1,5 +1,6 @@
-import { Body, Controller, ForbiddenException, Param, Post } from '@nestjs/common'
+import { Body, Controller, ForbiddenException, HttpCode, Param, Post } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { HttpStatusCode } from 'axios'
 import { InjectBot } from 'nestjs-telegraf'
 import { Telegraf } from 'telegraf'
 import { Update } from 'telegraf/types'
@@ -13,6 +14,7 @@ export class TelegramController {
 		@InjectBot(TELEGRAM_BOT_NAME) private readonly telegramBot: Telegraf,
 	) {}
 
+	@HttpCode(HttpStatusCode.Ok)
 	@Post('webhook/:secret')
 	async handleWebhook(@Param('secret') secret: string, @Body() update: Update): Promise<{ ok: boolean }> {
 		const expectedSecret = this.configService.get<string>('TELEGRAM_WEBHOOK_SECRET')
