@@ -7,10 +7,10 @@ import re
 import threading
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any
-
 import numpy as np
 from paddleocr import PaddleOCR
+
+from app.services.ocr_result_normalize import normalize_paddle_ocr_raw
 
 LOGGER_NAME = "ocr_microservice.ocr_service"
 DEFAULT_LANGUAGE = "en"
@@ -85,53 +85,19 @@ class OCRService:
 
         started_at = perf_counter()
         try:
-            # PaddleOCR 3.x: predict() no longer accepts cls=; angle cls is configured via use_angle_cls on init.
-            raw_output = self._ocr.ocr(image)
+            # PaddleOCR 3.x uses predict(); ocr() delegates to it. Output shape differs from 2.x (see _normalize_output).
+            predict_fn = getattr(self._ocr, "predict", None)
+            raw_output = predict_fn(image) if callable(predict_fn) else self._ocr.ocr(image)
         except Exception as exc:  # noqa: BLE001 - external OCR library exception surface
             raise OCRServiceError("OCR engine failed to process image.") from exc
 
-        result = self._normalize_output(raw_output)
+        tuples = normalize_paddle_ocr_raw(raw_output)
+        ocr_lines = [OCRLine(text=t, confidence=c) for t, c in tuples]
+        combined_text = "\n".join(t for t, _ in tuples)
+        result = OCRResult(text=combined_text, lines=ocr_lines)
         elapsed_ms = (perf_counter() - started_at) * 1000
         self._logger.info("OCR extraction completed in %.2f ms", elapsed_ms)
         return result
-
-    def _normalize_output(self, raw_output: Any) -> OCRResult:
-        """
-        Convert PaddleOCR output into a stable service response shape.
-
-        PaddleOCR generally returns nested lists where each detected line is:
-        [bbox, (text, confidence)].
-        """
-        lines: list[OCRLine] = []
-        if not raw_output:
-            return OCRResult(text="", lines=lines)
-
-        for page in raw_output:
-            if not page:
-                continue
-
-            for item in page:
-                if not isinstance(item, (list, tuple)) or len(item) < 2:
-                    continue
-
-                text_payload = item[1]
-                if not isinstance(text_payload, (list, tuple)) or len(text_payload) < 2:
-                    continue
-
-                text_value = str(text_payload[0]).strip()
-                if not text_value:
-                    continue
-
-                confidence_value = text_payload[1]
-                try:
-                    confidence = float(confidence_value)
-                except (TypeError, ValueError):
-                    confidence = 0.0
-
-                lines.append(OCRLine(text=text_value, confidence=confidence))
-
-        combined_text = "\n".join(line.text for line in lines)
-        return OCRResult(text=combined_text, lines=lines)
 
 
 def get_ocr_service() -> OCRService:

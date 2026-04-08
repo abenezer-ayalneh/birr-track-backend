@@ -11,7 +11,6 @@ from fastapi.responses import JSONResponse
 
 from app.routes.llm import router as llm_router
 from app.routes.ocr import router as ocr_router
-from app.services.llm_service import get_llm_service
 from app.services.ocr_service import get_ocr_service
 
 LOGGER_NAME = "ocr_microservice"
@@ -30,13 +29,13 @@ async def lifespan(_: FastAPI):
     """
     Preload OCR model once during startup.
 
-    Keeping initialization in startup avoids per-request model loading overhead.
+    LLM is loaded lazily on first /llm/extract call so Docker/OCR-only deploys work
+    without a mounted .gguf file.
     """
     logger = logging.getLogger(LOGGER_NAME)
-    logger.info("Starting OCR microservice and warming OCR/LLM engines")
+    logger.info("Starting OCR microservice and warming OCR engine")
     get_ocr_service()
-    get_llm_service()
-    logger.info("OCR and LLM engines ready")
+    logger.info("OCR engine ready (LLM loads on first use if model file exists)")
     yield
     logger.info("Stopping OCR microservice")
 

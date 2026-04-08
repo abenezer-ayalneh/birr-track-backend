@@ -42,6 +42,34 @@ def decode_image(file_bytes: bytes) -> np.ndarray:
         raise ImageProcessingError("Invalid or corrupted image file.") from exc
 
 
+def prepare_image_for_paddle_ocr(image: np.ndarray) -> np.ndarray:
+    """
+    Light preparation for PaddleOCR: keep color/BGR and only upscale small images.
+
+    Heavy binarization (see preprocess_image) hurts phone screenshots and colored UI.
+    """
+    if image is None or image.size == 0:
+        raise ImageProcessingError("Image preprocessing failed due to empty input.")
+
+    if image.ndim == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+    height, width = image.shape[:2]
+    if height >= MIN_HEIGHT_PIXELS and width >= MIN_WIDTH_PIXELS:
+        return image
+
+    height_scale = MIN_HEIGHT_PIXELS / max(height, 1)
+    width_scale = MIN_WIDTH_PIXELS / max(width, 1)
+    scale_factor = max(height_scale, width_scale)
+    resized_width = max(int(width * scale_factor), 1)
+    resized_height = max(int(height * scale_factor), 1)
+    return cv2.resize(
+        image,
+        (resized_width, resized_height),
+        interpolation=cv2.INTER_CUBIC,
+    )
+
+
 def preprocess_image(image: np.ndarray) -> np.ndarray:
     """
     Prepare an image for OCR using denoise + contrast normalization pipeline.

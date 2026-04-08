@@ -9,7 +9,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.models.response_models import ErrorResponse, OCRLineResponse, OCRResponse
 from app.services.ocr_service import OCRServiceError, get_ocr_service
-from app.services.preprocessing import ImageProcessingError, decode_image, preprocess_image
+from app.services.preprocessing import ImageProcessingError, decode_image, prepare_image_for_paddle_ocr
 
 LOGGER_NAME = "ocr_microservice.routes.ocr"
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
@@ -53,8 +53,8 @@ async def ocr_extract(file: UploadFile = File(...)) -> OCRResponse:
 
     try:
         image = decode_image(file_bytes)
-        preprocessed = preprocess_image(image)
-        result = get_ocr_service().extract_text(preprocessed)
+        prepared = prepare_image_for_paddle_ocr(image)
+        result = get_ocr_service().extract_text(prepared)
     except ImageProcessingError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

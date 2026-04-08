@@ -9,7 +9,7 @@ from fastapi import APIRouter, status
 
 from app.models.request_models import LLMExtractRequest
 from app.models.response_models import ErrorResponse, LLMExtractResponse
-from app.services.llm_service import LLMServiceError, get_llm_service
+from app.services.llm_service import LLMModelNotFoundError, LLMServiceError, get_llm_service
 from app.services.parser import build_fallback_payload
 
 router = APIRouter(prefix="/llm", tags=["llm"])
@@ -37,6 +37,9 @@ async def llm_extract(payload: LLMExtractRequest) -> LLMExtractResponse:
 
     try:
         extracted = get_llm_service().extract_transaction_data(payload.text)
+    except LLMModelNotFoundError as exc:
+        logger.warning("LLM skipped (no model file): %s", exc)
+        extracted = build_fallback_payload()
     except LLMServiceError:
         logger.exception("LLM inference failed; using fallback payload")
         extracted = build_fallback_payload()

@@ -32,6 +32,10 @@ class LLMServiceError(RuntimeError):
     """Raised when LLM inference fails unexpectedly."""
 
 
+class LLMModelNotFoundError(LLMServiceError):
+    """Raised when LLM_MODEL_PATH points to a file that does not exist."""
+
+
 @dataclass(frozen=True, slots=True)
 class LLMConfig:
     """Runtime configuration for the local LLM."""
@@ -124,13 +128,21 @@ class LLMService:
 
 
 def get_llm_service() -> LLMService:
-    """Return singleton LLM service instance loaded once per process."""
+    """Return singleton LLM service instance, loading on first successful access."""
     global _SERVICE_INSTANCE
-    if _SERVICE_INSTANCE is None:
-        with _SERVICE_LOCK:
-            if _SERVICE_INSTANCE is None:
-                _SERVICE_INSTANCE = LLMService(config=LLMConfig.from_env())
-    return _SERVICE_INSTANCE
+    if _SERVICE_INSTANCE is not None:
+        return _SERVICE_INSTANCE
+    with _SERVICE_LOCK:
+        if _SERVICE_INSTANCE is not None:
+            return _SERVICE_INSTANCE
+        config = LLMConfig.from_env()
+        if not os.path.isfile(config.model_path):
+            raise LLMModelNotFoundError(
+                f"LLM model file not found: {config.model_path}. "
+                "Set LLM_MODEL_PATH or mount a .gguf into the container."
+            )
+        _SERVICE_INSTANCE = LLMService(config=config)
+        return _SERVICE_INSTANCE
 
 
 def _safe_int_env(name: str, default: int) -> int:
