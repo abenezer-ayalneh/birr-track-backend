@@ -14,8 +14,7 @@ export default class GlobalExceptionFilter implements ExceptionFilter {
 	constructor(private readonly logger: Logger) {}
 
 	catch(exception: unknown, host: ArgumentsHost) {
-		const ctx = host.switchToHttp()
-		const response = ctx.getResponse<Response>()
+		const contextType = host.getType()
 		let stack = null
 
 		// Create the default response data structure
@@ -52,6 +51,15 @@ export default class GlobalExceptionFilter implements ExceptionFilter {
 			this.logger.error({ exception }, stack)
 		}
 
+		// Telegram/Telegraf updates and other non-HTTP contexts do not expose
+		// an Express/Fastify response object, so we only build an HTTP response
+		// when the current execution context is actually HTTP.
+		if (contextType !== 'http') {
+			return
+		}
+
+		const ctx = host.switchToHttp()
+		const response = ctx.getResponse<Response>()
 		response.status(responseData.statusCode).json(responseData)
 	}
 }

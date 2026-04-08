@@ -29,7 +29,7 @@ async function bootstrap() {
 	})
 
 	// Add an 'api' prefix to all controller routes
-	app.setGlobalPrefix('api')
+	// app.setGlobalPrefix('api')
 
 	// Register global pipes
 	app.useGlobalPipes(

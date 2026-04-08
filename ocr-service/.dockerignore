@@ -1,0 +1,16 @@
+.git
+.gitignore
+.cursor
+.idea
+.vscode
+node_modules
+dist
+logs
+test
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite
+.DS_Store

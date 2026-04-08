@@ -1,0 +1,1 @@
+"""OCR response model package."""
