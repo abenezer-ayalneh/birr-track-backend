@@ -137,7 +137,7 @@ export class TransactionsService {
 		worksheet.columns = [
 			{ header: 'ID', key: 'id', width: 38 },
 			{ header: 'Telegram User ID', key: 'telegramUserId', width: 20 },
-			{ header: 'Telegram Name', key: 'telegramName', width: 24 },
+			{ header: 'Telegram name', key: 'telegramName', width: 28 },
 			{ header: 'Amount', key: 'amount', width: 16 },
 			{ header: 'Transaction ID', key: 'transactionId', width: 24 },
 			{ header: 'Timestamp', key: 'timestamp', width: 28 },

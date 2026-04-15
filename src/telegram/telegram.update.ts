@@ -23,4 +23,14 @@ export class TelegramUpdateHandler {
 	async handlePhoto(@Ctx() context: Context): Promise<void> {
 		await this.telegramService.handlePhotoMessage(context)
 	}
+
+	/** `Composer.on('photo')` only matches `message`, not `edited_message` — cover caption/media edits. */
+	@On('edited_message')
+	async handleEditedMessage(@Ctx() context: Context): Promise<void> {
+		const edited = context.editedMessage
+		if (!edited || !('photo' in edited) || !edited.photo?.length) {
+			return
+		}
+		await this.telegramService.handlePhotoMessage(context)
+	}
 }

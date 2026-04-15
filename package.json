@@ -24,6 +24,7 @@
 		"smoke:e2e:wait": "SMOKE_WAIT_FOR_BACKEND_MS=120000 SMOKE_TIMEOUT_MS=120000 ts-node src/scripts/smoke-test-e2e.ts",
 		"db:migrate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli -d src/database/data-source.ts migration:run",
 		"smoke:e2e:setup": "npm run db:migrate && npm run smoke:e2e:wait",
+		"telegram:webhook": "ts-node src/scripts/setup-telegram-webhook.ts",
 		"pretty-quick": "pretty-quick --staged",
 		"lint-staged": "lint-staged",
 		"prepare": "husky"
